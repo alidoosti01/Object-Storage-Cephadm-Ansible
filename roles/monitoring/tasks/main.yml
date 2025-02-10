@@ -1,0 +1,47 @@
+---
+
+- name: Read the fetched SSH key into a variable
+  ansible.builtin.set_fact:
+    ssh_key_content: "{{ lookup('file', './tmp/ceph_ssh.pub') }}"
+
+- name: Append SSH public key to authorized_keys
+  ansible.builtin.lineinfile:
+    path: /root/.ssh/authorized_keys
+    line: "{{ ssh_key_content }}"
+    state: present
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Check if the host is already part of the Ceph cluster
+  ansible.builtin.shell: |
+    ceph orch host ls --format json | jq -r '.[].hostname'
+  register: ceph_current_hosts
+  delegate_to: "{{ groups['mons'] | first }}"
+  run_once: true
+
+- name: Set fact for whether the host is in the Ceph cluster
+  ansible.builtin.set_fact:
+    host_in_cluster: "{{ inventory_hostname in ceph_current_hosts.stdout_lines }}"
+
+- name: Add the host to the Ceph cluster
+  ansible.builtin.command:
+    cmd: ceph orch host add {{ inventory_hostname }} {{ hostvars[inventory_hostname].ansible_facts['eth1']['ipv4']['address'] }} --labels={{ service_label }}
+  delegate_to: "{{ groups['mons'] | first }}"
+  when: not host_in_cluster
+
+- name: Set prometheus applied only on prometheus hosts
+  ansible.builtin.command:
+    cmd: 'ceph orch apply prometheus --placement="{{ replica_count }} label:{{ service_label }}"'
+  delegate_to: "{{ groups['mons'] | first }}"
+
+
+- name: Set Alert-manager applied only on prometheus hosts
+  ansible.builtin.command:
+    cmd: 'ceph orch apply alertmanager --placement="{{ replica_count }} label:{{ service_label }}"'
+  delegate_to: "{{ groups['mons'] | first }}"
+
+- name: Apply Grafana
+  ansible.builtin.command:
+    cmd: 'ceph orch apply grafana --placement="{{ replica_count }} label:{{ service_label }}"'
+  delegate_to: "{{ groups['mons'] | first }}"

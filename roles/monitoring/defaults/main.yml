@@ -1,0 +1,2 @@
+service_label: bastion
+replica_count: 1
