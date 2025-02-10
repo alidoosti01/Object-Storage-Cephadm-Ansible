@@ -1,0 +1,68 @@
+---
+- name: check connectivity
+  ansible.builtin.ping:
+    data: alive
+
+- name: Install pip
+  ansible.builtin.apt:
+    name: python3-pip
+    state: present
+
+- name: install AWS cli
+  ansible.builtin.pip:
+    name: awscli
+    state: present
+
+- name: Create a folder for the user
+  ansible.builtin.file:
+    path: "/root/.aws"
+    mode: 0744
+    owner: root
+    state: directory
+    group: root
+
+- name: Create the user and paste the output to a file
+  ansible.builtin.shell:
+    cmd: 'radosgw-admin user create --uid="{{ first_client }}" --display-name="{{ first_client }}" > /root/{{ first_client }}.json'
+  delegate_to: "{{ groups['mons'] | first }}"
+  register: client_config_json
+
+- name: Check if JSON file exists
+  ansible.builtin.stat:
+    path: /root/{{ first_client }}.json
+  register: json_file_stat
+  delegate_to: "{{ groups['mons'] | first }}"
+
+- name: Fail if JSON file is missing
+  ansible.builtin.fail:
+    msg: "File /root/{{ first_client }}.json does not exist!"
+  when: not json_file_stat.stat.exists
+  delegate_to: "{{ groups['mons'] | first }}"
+
+- name: Read JSON file content
+  ansible.builtin.slurp:
+    src: /root/{{ first_client }}.json
+  register: json_file_content
+  delegate_to: "{{ groups['mons'] | first }}"
+
+- name: Parse JSON
+  ansible.builtin.set_fact:
+    json_file: "{{ json_file_content['content'] | b64decode | from_json }}"
+
+- name: Extract the keys
+  ansible.builtin.set_fact:
+    access_key: "{{ json_file['keys'][0]['access_key'] }}"
+    secret_key: "{{ json_file['keys'][0]['secret_key'] }}"
+
+- name: Create AWS profile
+  ansible.builtin.template:
+    src: config.j2
+    dest: "/root/.aws/config"
+  
+- name: Create a config file for s3cmd
+  ansible.builtin.template:
+    src: credentials.j2
+    dest: "/root/.aws/credentials"
+  vars:
+    secret_key: "{{ secret_key }}"
+    access_key: "{{ access_key }}"
