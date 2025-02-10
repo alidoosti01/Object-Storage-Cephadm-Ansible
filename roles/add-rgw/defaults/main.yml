@@ -1,0 +1,7 @@
+service_label: rgw
+rgw_service_name: rgwtest
+replica_count: 2
+ecp_name: myecp
+failure_domain: host
+k_number: 2
+m_number: 1

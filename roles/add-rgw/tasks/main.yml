@@ -1,0 +1,118 @@
+---
+
+- name: Read the fetched SSH key into a variable
+  ansible.builtin.set_fact:
+    ssh_key_content: "{{ lookup('file', './tmp/ceph_ssh.pub') }}"
+
+- name: Append SSH public key to authorized_keys
+  ansible.builtin.lineinfile:
+    path: /root/.ssh/authorized_keys
+    line: "{{ ssh_key_content }}"
+    state: present
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Check if the host is already part of the Ceph cluster
+  ansible.builtin.shell: |
+    ceph orch host ls --format json | jq -r '.[].hostname'
+  register: ceph_current_hosts
+  delegate_to: "{{ groups['mons'] | first }}"
+  run_once: true
+
+
+- name: Set fact for whether the host is in the Ceph cluster
+  ansible.builtin.set_fact:
+    host_in_cluster: "{{ inventory_hostname in ceph_current_hosts.stdout_lines }}"
+
+- name: Check cephadm is installed
+  ansible.builtin.stat:
+    path: /usr/sbin/cephadm
+  register: cephadm_installed
+  run_once: true
+
+
+- name: Install and setup the host if not in the cluster
+  block:
+    - name: Include common setup roles
+      ansible.builtin.include_role:
+        name: "{{ item }}"
+      loop:
+        - pre-setup
+        - hardening
+        - docker-install
+        - cephadm-install
+      when:
+        - not host_in_cluster
+        - not cephadm_installed.stat.exists
+
+    - name: Add the host to the Ceph cluster
+      ansible.builtin.command:
+        cmd: ceph orch host add {{ inventory_hostname }} {{ hostvars[inventory_hostname].ansible_facts['eth1']['ipv4']['address'] }} --labels={{ service_label }}
+      delegate_to: "{{ groups['mons'] | first }}"
+      when: not host_in_cluster
+  when: not host_in_cluster
+
+- name: Check rgw is active
+  ansible.builtin.shell:
+    ceph orch ls --format json | jq -r '.[].service_name'
+  register: rgw_service
+  delegate_to: "{{ groups['mons'] | first }}"
+  changed_when: false
+  run_once: true
+
+
+- name: Apply RGW service
+  ansible.builtin.command:
+    cmd: 'ceph orch apply rgw {{ rgw_service_name }} --placement="label:{{ service_label }}"'
+  when: "'rgw' not in rgw_service.stdout"
+  delegate_to: "{{ groups['mons'] | first }}"
+
+
+- name: Pause for clsuter to setup the RGWs
+  ansible.builtin.pause:
+    seconds: 20
+
+- name: Create Erasure Code profile
+  command:
+    cmd: ceph osd erasure-code-profile set {{ ecp_name }} k={{ k_number }} m={{ m_number }} crush-failure-domain={{ failure_domain }}
+  delegate_to: "{{ groups['mons'] | first }}"
+
+
+- name: Ensure the ecp was created
+  ansible.builtin.command:
+    cmd: ceph osd erasure-code-profile get {{ ecp_name }}
+  register: new_ecp
+  delegate_to: "{{ groups['mons'] | first }}"
+
+- name: Details of new ecp
+  ansible.builtin.debug:
+    msg: "{{ new_ecp.stdout_lines }}"
+  delegate_to: "{{ groups['mons'] | first }}"
+
+- name: Pause for RGW service be available
+  ansible.builtin.pause:
+    seconds: 620
+
+
+- name: Get RGW data_pool name
+  ansible.builtin.shell:
+    radosgw-admin zone get | jq -r '.placement_pools[].val.storage_classes.STANDARD.data_pool'
+  register: rgw_data_pool_name
+
+  delegate_to: "{{ groups['mons'] | first }}"
+
+- name: Data pool set fact
+  ansible.builtin.set_fact:
+    data_pool_name: "{{ rgw_data_pool_name.stdout_lines[0] }}"
+  delegate_to: "{{ groups['mons'] | first }}"
+
+- name: Create rgw data pool with erasure code profile
+  ansible.builtin.command:
+    cmd: ceph osd pool create {{ data_pool_name }} erasure {{ ecp_name }}
+  delegate_to: "{{ groups['mons'] | first }}"
+
+- name: Enable RGW application on new pool
+  ansible.builtin.command:
+    cmd: ceph osd pool application enable {{ data_pool_name }} {{ service_label }}
+  delegate_to: "{{ groups['mons'] | first }}"
