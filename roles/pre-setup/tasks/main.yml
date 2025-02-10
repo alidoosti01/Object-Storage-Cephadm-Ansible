@@ -1,0 +1,100 @@
+---
+- name: Check Connectivity
+  ansible.builtin.ping:
+
+- name: Update apt
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install base packages
+  ansible.builtin.apt:
+    update_cache: true
+    name:
+      - net-tools
+      - xz-utils
+      - bmon
+      - curl
+      - tcpdump
+      - vim
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - python3
+      - jq
+      - resolvconf
+      - python3-pip
+    state: present
+
+- name: Set resolvconf head
+  ansible.builtin.copy:
+    dest: /etc/resolvconf/resolv.conf.d/head
+    content: |
+      nameserver {{ name_server1 }}
+      nameserver {{ name_server2 }}
+  notify:
+    - Reload resolvconf
+
+- name: Ensure resolvconf service is running
+  systemd:
+    name: resolvconf
+    state: started
+    enabled: true
+
+- name: Remove existing /etc/resolv.conf
+  ansible.builtin.file:
+    path: /etc/resolv.conf
+    state: absent
+
+- name: Create symbolic link for /etc/resolv.conf
+  ansible.builtin.file:
+    src: ../etc/resolvconf/resolv.conf.d/head
+    dest: /etc/resolv.conf
+    state: link
+    owner: root
+    group: root
+    mode: '0644'
+
+# - name: Update and Upgrade system
+#   apt:
+#     update_cache: yes
+#     upgrade: dist
+
+- name: Install NTP package
+  ansible.builtin.apt:
+    name: ntp
+    state: present
+    update_cache: yes
+
+- name: Start and enable NTP service
+  systemd:
+    name: ntp
+    enabled: true
+    state: started
+
+- name: Replace the line in /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^127\.0\.0\.1\s+localhost$'
+    line: '127.0.0.1 localhost {{ ansible_facts.hostname }}'
+
+- name: Hosts | create hosts list from inventory on all nodes
+  ansible.builtin.set_fact:
+    etc_hosts_inventory_block: |-
+      {% for item in groups['ceph_cluster'] | unique -%}
+      {% if 'access_ip' in hostvars[item] or 'ip' in hostvars[item] or 'ansible_default_ipv4' in hostvars[item] -%}
+      {{ hostvars[item]['access_ip'] | default(hostvars[item]['ip'] | default(hostvars[item]['ansible_default_ipv4']['address'])) }}
+      {%- if ('ansible_hostname' in hostvars[item] and item != hostvars[item]['ansible_hostname']) %} {{ hostvars[item]['ansible_hostname'] }} {% else %} {{ item }} {% endif %}
+
+      {% endif %}
+      {% endfor %}
+
+- name: Hosts | populate inventory into hosts file on all nodes
+  blockinfile:
+    path: /etc/hosts
+    block: "{{ etc_hosts_inventory_block }}"
+    state: "{{ 'present' if populate_inventory_to_hosts_file else 'absent' }}"
+    create: true
+    backup: true
+    unsafe_writes: true
+    marker: "# Ansible inventory hosts {mark}"
+    mode: "0644"

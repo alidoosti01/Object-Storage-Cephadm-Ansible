@@ -1,0 +1,12 @@
+---
+- name: Reload sysctl
+  sysctl:
+    reload: yes
+
+- name: Restart networking
+  systemd:
+    name: networking
+    state: restarted
+
+- name: Reload resolvconf
+  ansible.builtin.command: resolvconf -u

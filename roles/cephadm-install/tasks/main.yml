@@ -1,0 +1,26 @@
+---
+- name: Download cephadm script
+  ansible.builtin.get_url:
+    url: "https://download.ceph.com/rpm-{{ ceph_release }}/el9/noarch/cephadm"
+    dest: /usr/local/bin/cephadm
+    mode: '0755'
+
+- name: Check if "Completed adding repo" is in the log
+  ansible.builtin.command:
+    cmd: grep "Completed adding repo" /var/log/ceph/cephadm.log
+  register: check_log
+  ignore_errors: true
+  changed_when: false
+
+- name: Add Ceph repository (Reef release)
+  ansible.builtin.command: /usr/local/bin/cephadm add-repo --release reef
+  when: check_log.rc != 0
+
+- name: Install cephadm
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    update_cache: true
+  loop:
+    - cephadm
+    - ceph-common
+  when: check_log.rc != 0

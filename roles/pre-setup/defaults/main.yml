@@ -1,0 +1,5 @@
+---
+name_server1: "1.1.1.1"
+name_server2: "8.8.8.8"
+
+populate_inventory_to_hosts_file: true
