@@ -1,0 +1,38 @@
+---
+
+- name: Check for connectivity
+  ansible.builtin.ping:
+    data: alive
+
+- name: Initial ceph cluster
+  ansible.builtin.command:
+    cmd: 'cephadm bootstrap --mon-ip {{ ansible_facts["eth1"]["ipv4"]["address"] }} --cluster-network {{ ansible_facts["eth1"]["ipv4"]["network"] }}/{{ ansible_facts["eth1"]["ipv4"]["prefix"] }} --initial-dashboard-user {{ dashboard_user }} --initial-dashboard-password {{ dashboard_password }}'
+  register: cephadm_bootstrap
+
+- name: Cephadm bootstrap result
+  ansible.builtin.debug:
+    var: cephadm_bootstrap.stdout
+
+- name: Set mon public network on ceph
+  ansible.builtin.command:
+    cmd: 'ceph config set mon public_network {{ ansible_facts["eth1"]["ipv4"]["network"] }}/{{ ansible_facts["eth1"]["ipv4"]["prefix"] }}'
+  register: mon_public_network
+
+
+- name: Read the Ceph public key
+  ansible.builtin.slurp:
+    src: /etc/ceph/ceph.pub
+  register: ceph_pub_key
+  run_once: true
+
+- name: Decode and store the Ceph public key in a variable
+  ansible.builtin.set_fact:
+    ceph_ssh_pub: "{{ ceph_pub_key.content | b64decode }}"
+  run_once: true
+
+- name: Fetch ssh pub key file
+  ansible.builtin.fetch:
+    src: "/etc/ceph/ceph.pub"
+    dest: "tmp/ceph_ssh.pub"
+    flat: true
+  delegate_to: "{{ groups['mons'] | first }}"

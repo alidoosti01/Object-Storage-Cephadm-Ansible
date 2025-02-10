@@ -1,0 +1,6 @@
+---
+dashboard_user: <ADMIN_USER>
+dashboard_password: <ADMIN_PASSWORD>
+
+source_file: /etc/ceph/ceph.pub
+dst_file: /root/.ssh/authorized_keys
