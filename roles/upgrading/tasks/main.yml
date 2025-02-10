@@ -1,0 +1,46 @@
+--- 
+
+- name: Check current version
+  ansible.builtin.command:
+    cmd: ceph version
+  register: current_ceph_version
+
+- name: Show current version
+  ansible.builtin.debug:
+    msg: "{{ current_ceph_version.stdout }}"
+
+- name: Set flags on OSDs before upgrade
+  ansible.builtin.shell:
+    cmd: ceph osd set noout && ceph osd set norebalance && ceph osd set noscrub
+  when: new_version not in current_ceph_version.stdout
+
+- name: Upgrade cluster
+  ansible.builtin.command:
+    cmd: ceph orch upgrade start --ceph-version {{ new_version }}
+  when: new_version not in current_ceph_version.stdout
+
+- name: Get upgrade status
+  ansible.builtin.shell:
+    ceph orch upgrade status | jq -r '.in_progress'
+  register: upgrade_status
+  changed_when: false
+
+- name: Set fact 
+  ansible.builtin.set_fact:
+    status_upgrade: "{{ upgrade_status.stdout }}"
+
+- name: Wait until upgrade status is not in progress
+  until: "{{'false' != status_upgrade }}"
+  retries: 150
+  delay: 30
+  ansible.builtin.command: ceph orch upgrade status
+  changed_when: false
+
+- name: Set flags on OSDs before upgrade
+  ansible.builtin.shell:
+    cmd: ceph osd set noout && ceph osd set norebalance && ceph osd set noscrub
+
+
+- name: Status of upgrading cluster
+  ansible.builtin.debug:
+    msg: "{{ Upgrading secuccefuly }}"
