@@ -1,0 +1,3 @@
+target_host: <HOSTNAME>
+service_label: <SERVICE_LABEL>
+rgw_service_name: <RGWSERVICENAME>
