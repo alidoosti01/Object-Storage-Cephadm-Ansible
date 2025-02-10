@@ -16,6 +16,13 @@ This repository contains an Ansible playbook to deploy and manage an object stor
   - [Maintenance](#maintenance)
 - [Using Ansible](#using-ansible)
 - [Deploy a New Data Center](#deploy-a-new-data-center)
+- [Known Issues](#known-issues)
+  - [Ansible Role Refactoring](#ansible-role-structure-needs-refactoring)
+  - [Grafana Dashboards and Data Source](#grafana-default-dashboards-and-prometheus-data-source)
+  - [Use Cephadm Sub-Module Instead of Commands](#use-cephadm-sub-module-instead-of-commands)
+  - [Repeated Checks for Cluster Upgrades](#repeated-checks-for-cluster-upgrades)
+  - [Removing OSDs](#removing-osds)
+  - [Contribution Guidelines](#contribution-guidelines)
 
 ## Overview
 
@@ -219,3 +226,82 @@ To deploy a new data center, you can use all the necessary tags in a single comm
 ```bash
 ansible-playbook playbook/main.yml --tags "install,initialize,add-mon,add-mgr,add-osd,add-rgw,monitoring"
 ```
+
+## Known Issues
+
+While this Ansible playbook is functional and has been designed to automate the deployment and management of a Ceph-based object storage service, there are some known issues and areas for improvement. Below is a detailed explanation of these issues:
+
+---
+
+### **Ansible Role Structure Needs Refactoring**
+
+- **Current State**: The playbook currently uses multiple roles for specific tasks, such as `add-mon`, `add-rgw`, `add-osd`, etc. This structure can lead to redundancy and increased complexity.
+- **Expected Improvement**: The roles should be consolidated into broader, more logical categories, such as:
+  - **Common-setup**: Handles OS preparation, security hardening, and dependency installation.
+  - **Ceph-setup**: Manages Ceph-specific installations and configurations.
+  - **Ceph-init**: Handles the initialization of the Ceph cluster.
+  - **Add-components**: Combines all roles for adding MON, MGR, OSD, and RGW into a single role.
+  - **Remove-components**: Combines all roles for removing MON, MGR, OSD, and RGW into a single role.
+  - **Maintenance**: Handles entering and exiting maintenance mode for all services.
+  - **Upgrade**: Manages cluster upgrades.
+- **Impact**: Refactoring the roles will make the playbook easier to maintain, extend, and debug.
+
+---
+
+### **Grafana Default Dashboards and Prometheus Data Source**
+
+- **Current State**: When the monitoring stack is deployed, Grafana comes without any dashboards.
+- **Expected Improvement**: The playbook should allow users to:
+  - Grafana dashboards already on it .
+  - Configure additional data sources if needed.
+  - Remove or modify default dashboards to avoid clutter.
+- **Impact**: This will provide more flexibility and ensure that the monitoring stack is tailored to the user's needs.
+
+---
+
+### **Use Cephadm Sub-Module Instead of Commands**
+
+- **Current State**: The playbook uses shell commands to interact with Cephadm, which can lead to inconsistencies and errors.
+- **Expected Improvement**: Replace shell commands with the official Cephadm Ansible sub-module. This will:
+  - Improve reliability and maintainability.
+  - Ensure compatibility with future Ceph releases.
+  - Provide better error handling and logging.
+- **Impact**: Using the Cephadm sub-module will make the playbook more robust and aligned with best practices.
+
+---
+
+### **Repeated Checks for Cluster Upgrades**
+
+- **Current State**: The playbook does not perform repeated checks to ensure that the cluster upgrade process is successful. This can lead to incomplete or failed upgrades.
+- **Expected Improvement**: Implement a mechanism to:
+  - Verify the current cluster state before upgrading.
+  - Monitor the upgrade process in real-time.
+  - Retry failed steps or roll back changes if necessary.
+- **Impact**: This will ensure that upgrades are performed smoothly and without disrupting the cluster.
+
+---
+
+### **Removing OSDs**
+
+- **Current State**: The process of removing OSDs (Object Storage Daemons) from the cluster is not fully optimized. It may leave behind residual configurations or fail to rebalance data properly.
+- **Expected Improvement**: Enhance the `remove-osd` role to:
+  - Safely rebalance data before removing an OSD.
+  - Clean up all associated configurations and resources.
+  - Provide clear logs and status updates during the removal process.
+- **Impact**: This will ensure that OSD removal is safe, efficient, and does not impact cluster performance.
+
+---
+
+### Contribution Guidelines
+
+If you encounter any of these issues or have suggestions for improvements, feel free to:
+
+- Open an issue on GitHub to discuss the problem.
+- Submit a pull request with your proposed changes.
+- Reach out to the maintainers for guidance.
+
+Your contributions are highly appreciated and will help make this project better for everyone!
+
+---
+
+By addressing these known issues, we can significantly improve the functionality, reliability, and usability of this Ansible playbook. Thank you for your understanding and support!
