@@ -1,0 +1,68 @@
+---
+
+- name: Read the fetched SSH key into a variable
+  ansible.builtin.set_fact:
+    ssh_key_content: "{{ lookup('file', './tmp/ceph_ssh.pub') }}"
+
+- name: Append SSH public key to authorized_keys
+  ansible.builtin.lineinfile:
+    path: /root/.ssh/authorized_keys
+    line: "{{ ssh_key_content }}"
+    state: present
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Check if the host is already part of the Ceph cluster
+  ansible.builtin.shell: |
+    ceph orch host ls --format json | jq -r '.[].hostname'
+  register: ceph_current_hosts
+  delegate_to: "{{ groups['mons'] | first }}"
+  run_once: true
+
+- name: Set fact for whether the host is in the Ceph cluster
+  ansible.builtin.set_fact:
+    host_in_cluster: "{{ inventory_hostname in ceph_current_hosts.stdout_lines }}"
+
+- name: Check cephadm is installed
+  ansible.builtin.stat:
+    path: /usr/sbin/cephadm
+  register: cephadm_installed
+  run_once: true
+
+
+- name: Install and setup the host if not in the cluster
+  block:
+    - name: Include common setup roles
+      ansible.builtin.include_role:
+        name: "{{ item }}"
+      loop:
+        - pre-setup
+        - hardening
+        - docker-install
+        - cephadm-install
+      when:
+        - not host_in_cluster
+        - not cephadm_installed.stat.exists
+
+    - name: Add the host to the Ceph cluster
+      ansible.builtin.command:
+        cmd: ceph orch host add {{ inventory_hostname }} {{ hostvars[inventory_hostname].ansible_facts['eth1']['ipv4']['address'] }} --labels=_admin,{{ service_label }}
+      delegate_to: "{{ groups['mons'] | first }}"
+      when: not host_in_cluster
+  when: not host_in_cluster
+
+- name: Check current MON placement state
+  ansible.builtin.shell:
+    ceph orch ls --format json | jq -r '.[] | select(.service_name | test("mon")) | .placement.count'
+  register: current_mon_placement
+  delegate_to: "{{ groups['mons'] | first }}"
+  changed_when: false
+  run_once: true
+
+- name: Set mon applied only on mon hosts
+  ansible.builtin.command:
+    cmd: 'ceph orch apply mon --placement="{{ replica_count }} label:{{ service_label }}"'
+  delegate_to: "{{ groups['mons'] | first }}"
+  when:
+    - current_mon_placement.stdout != '3'

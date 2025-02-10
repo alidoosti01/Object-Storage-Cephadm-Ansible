@@ -1,0 +1,3 @@
+# for Adding
+replica_count: 3
+service_label: mon

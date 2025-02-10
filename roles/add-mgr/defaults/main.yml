@@ -1,0 +1,5 @@
+replica_count: 3
+service_label: mgr
+
+sleep_time: 60
+desire_pg_pool: 200
