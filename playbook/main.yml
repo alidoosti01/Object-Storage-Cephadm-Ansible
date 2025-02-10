@@ -1,0 +1,192 @@
+---
+
+# Pre-setup servers and installing requirements
+- name: Setup empty server for new host
+  hosts: ceph_hosts
+  become: true
+  tasks:
+    - name: Check if Docker exists
+      ansible.builtin.stat:
+        path: /var/run/docker.sock
+      register: docker_status
+      tags: [ "install" ]
+    - name: Common setup
+      ansible.builtin.include_role:
+        name: "{{ item }}" 
+      loop:
+        - pre-setup
+        - hardening
+        - docker-install
+        - cephadm-install
+      when: not docker_status.stat.exists
+      tags: [ "install" ]
+  tags: [ "install" ]
+
+
+# Initializing the cluster
+- name: Check if Ceph configuration exists
+  become: true
+  hosts: "{{ groups['mons'] | first }}"
+  tasks:
+    - name: Check if Ceph configuration exists
+      ansible.builtin.stat:
+        path: /etc/ceph/ceph.conf
+      register: ceph_conf
+      tags: [ "initialize" ]
+
+    - name: Initialize the Ceph Cluster
+      ansible.builtin.include_role:
+        name: ceph-init
+      when:
+        - not ceph_conf.stat.exists
+      tags: [ "initialize" ]
+  tags: [ "initialize" ]
+
+
+# Add MON host to the Cluster
+- name: Adding MON to the cluster
+  become: true
+  hosts: "{{ groups['mons'] }}"
+  tasks:
+    - name: Adding a component to cluster
+      ansible.builtin.include_role:
+        name: add-mon
+      tags: [ "add-mon" ]
+  tags: [ "add-mon" ]
+
+
+# Add MGR to the cluster (on MON hosts)
+- name: Adding MGR to the cluster
+  become: true
+  hosts: "{{ groups['mons'] }}"
+  roles:
+    - add-mgr
+  tags: [ "add-mgr" ]
+
+
+# Add OSD (storage nodes) to the cluster
+- name: Adding OSD to the cluster
+  become: true
+  hosts: "{{ groups['osds'] }}"
+  roles:
+    - add-osd
+  tags: [ "add-osd" ]
+
+
+# Add RGW hosts to cluster and create erasure code pool
+- name: Adding RGW to the cluster
+  become: true
+  hosts: "{{ groups['rgws'] }}"
+  roles:
+    - add-rgw
+  tags: [ "add-rgw" ]
+
+
+# Setup Monitoring stack (alerting, prometheus and grafana)
+- name: Monitoring setup
+  become: true
+  hosts: monitoring
+  roles:
+    - monitoring
+  tags: [ "monitoring" ]
+
+
+# S3 client config 
+- name: S3 Client create
+  become: true
+  hosts: client
+  roles:
+    - pre-setup
+    - hardening
+    - client-config
+  tags: [ "client" ]
+
+
+# Removing RGW service or RGW host
+- name: Removing RGW from the cluster
+  become: true
+  hosts: "{{ groups['mons'] | first }}"
+  roles:
+    - remove-rgw
+  tags: [ "remove-rgw" ]
+
+
+# Removing MON service or MON host
+- name: Removing MON from the cluster
+  become: true
+  hosts: "{{ groups['mons'] | first }}"
+  roles:
+    - remove-mon
+  tags: [ "remove-mon" ]
+
+
+# Removing MGR service or MGR host
+- name: Removing MGR from the cluster
+  become: true
+  hosts: "{{ groups['mons'] }}"
+  roles:
+    - remove-mgr
+  tags: [ "remove-mgr" ]
+
+
+# Enter a host into Maintenance
+- name: Enter a host to Maintenance
+  become: true
+  hosts: "{{ groups['mons'] | first }}"
+  vars:
+    service_name: >-
+      {% if 'enter-maintenance-rgw' in ansible_run_tags %}rgw
+      {% elif 'enter-maintenance-mgr' in ansible_run_tags %}mgr
+      {% elif 'enter-maintenance-mon' in ansible_run_tags %}mon
+      {% elif 'enter-maintenance-osd' in ansible_run_tags %}osd{% endif %}
+
+    host_name: >-
+      {% if 'enter-maintenance-rgw' in ansible_run_tags %}rgw01
+      {% elif 'enter-maintenance-mgr' in ansible_run_tags %}mon01
+      {% elif 'enter-maintenance-mon' in ansible_run_tags %}mon01
+      {% elif 'enter-maintenance-osd' in ansible_run_tags %}osd01{% endif %}
+
+    service_label: >-
+      {% if 'enter-maintenance-rgw' in ansible_run_tags %}rgw
+      {% elif 'enter-maintenance-mgr' in ansible_run_tags %}mgr
+      {% elif 'enter-maintenance-mon' in ansible_run_tags %}mon
+      {% elif 'enter-maintenance-osd' in ansible_run_tags %}osd{% endif %}
+  roles:
+    - enter-maintenance
+  tags: ["enter-maintenance"]
+
+
+# Exit a host from Maintenance
+- name: Exit a host from maintenance
+  become: true
+  hosts: "{{ groups['mons'] | first }}"
+  vars:
+    service_name: >-
+      {% if 'exit-maintenance-rgw' in ansible_run_tags %}rgw
+      {% elif 'exit-maintenance-mgr' in ansible_run_tags %}mgr
+      {% elif 'exit-maintenance-mon' in ansible_run_tags %}mon
+      {% elif 'exit-maintenance-osd' in ansible_run_tags %}osd{% endif %}
+
+    host_name: >-
+      {% if 'exit-maintenance-rgw' in ansible_run_tags %}rgw01
+      {% elif 'exit-maintenance-mgr' in ansible_run_tags %}mon01
+      {% elif 'exit-maintenance-mon' in ansible_run_tags %}mon01
+      {% elif 'exit-maintenance-osd' in ansible_run_tags %}osd01{% endif %}
+
+    service_label: >-
+      {% if 'exit-maintenance-rgw' in ansible_run_tags %}rgw
+      {% elif 'exit-maintenance-mgr' in ansible_run_tags %}mgr
+      {% elif 'exit-maintenance-mon' in ansible_run_tags %}mon
+      {% elif 'exit-maintenance-osd' in ansible_run_tags %}osd{% endif %}
+  roles:
+    - exit-maintenance
+  tags: [ "exit-maintenance" ]
+
+
+# Upgrading cluster
+- name: Upgrade the cluster
+  become: true
+  hosts: "{{ groups['mons'] | first }}"
+  roles:
+    - upgrading
+  tags: [ "upgrade" ]
