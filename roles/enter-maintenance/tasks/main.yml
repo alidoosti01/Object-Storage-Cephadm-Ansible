@@ -1,0 +1,39 @@
+---
+
+- name: Remove label from host
+  ansible.builtin.command:
+    cmd: ceph orch host label rm {{ host_name }} {{ service_label }}
+  tags: [ "enter-maintenance-rgw", "enter-maintenance-mgr", "enter-maintenance-mon", "enter-maintenance-osd" ]
+
+- name: Set Flag for OSD
+  ansible.builtin.command:
+    cmd: ceph osd set noout
+  tags: [ "enter-maintenance-osd" ]
+
+- name: Set ok to stop on host
+  ansible.builtin.command:
+    cmd: ceph orch host ok-to-stop {{ host_name }}
+  tags: [ "enter-maintenance-rgw", "enter-maintenance-mgr", "enter-maintenance-mon", "enter-maintenance-osd" ]
+
+- name: pause for degrees the service
+  ansible.builtin.pause:
+    seconds: 20
+  tags: [ "enter-maintenance-rgw", "enter-maintenance-mgr", "enter-maintenance-mon" ]
+
+
+- name: Check running service count
+  ansible.builtin.shell:
+    ceph orch ls {{ service_name }} --format json-pretty | jq -r '.[].status.running'
+  register: running_service
+  tags: [ "enter-maintenance-rgw", "enter-maintenance-mgr", "enter-maintenance-mon" ]
+
+- name: Check size of the service
+  ansible.builtin.shell:
+    ceph orch ls {{ service_name }} --format json-pretty | jq -r '.[].status.size'
+  register: size_service
+  tags: [ "enter-maintenance-rgw", "enter-maintenance-mgr", "enter-maintenance-mon" ]
+
+- name: Enter to maintenance
+  ansible.builtin.command:
+    cmd: ceph orch host maintenance enter {{ host_name }}
+  tags: [ "enter-maintenance-rgw", "enter-maintenance-mgr", "enter-maintenance-mon", "enter-maintenance-osd" ]

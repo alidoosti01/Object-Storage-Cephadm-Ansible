@@ -1,0 +1,16 @@
+---
+
+- name: Exit from maintenance
+  ansible.builtin.command:
+    cmd: ceph orch host maintenance exit {{ host_name }}
+  tags: [ "exit-maintenance-rgw", "exit-maintenance-mgr", "exit-maintenance-mon", "exit-maintenance-osd" ]
+
+- name: Unset noout Flag
+  ansible.builtin.command:
+    cmd: ceph osd unset noout
+  tags: "exit-maintenance-osd"
+
+- name: Add label to host
+  ansible.builtin.command:
+    cmd: ceph orch host label add {{ host_name }} {{ service_label }}
+  tags: [ "exit-maintenance-rgw", "exit-maintenance-mgr", "exit-maintenance-mon", "exit-maintenance-osd" ]
