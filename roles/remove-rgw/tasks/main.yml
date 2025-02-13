@@ -1,38 +1,10 @@
 ---
-########################## REMOVING RGW SERVICE ##########################
 
-# - name: remove All RGW service
-#   ansible.builtin.command::
-#     cmd: ceph orch rm rgw."{{ rgw_service_name }}"
-# 
+- name: Include remove service tasks if target_action is 'service'
+  ansible.builtin.include_tasks: remove_service.yml
+  when: target_action == "service"
 
-########################## REMOVING RGW A HOST ##############################
-
-- name: Drain a RGW host
-  ansible.builtin.command:
-    cmd: ceph orch host drain {{ target_host }}
-  register: draining_host
-
-- name: Show output drain
-  ansible.builtin.debug:
-    msg: "{{ draining_host.stdout_lines }}"
-
-- name: Check hosts that get the labels
-  ansible.builtin.shell:
-    ceph orch host ls --format json | jq -r '.[] | select(.hostname | test("{{ target_host }}")) | .labels[]'
-  register: rgw_tags
-
-- name: Set fact the tags 
-  ansible.builtin.set_fact:
-    rgw_tag: "{{ rgw_tags.stdout_lines }}"
-
-- name: Pause for Draining host
-  ansible.builtin.pause:
-    seconds: 20
-
-- name: Check and Remove the hosts
-  ansible.builtin.command:
-    cmd: ceph orch host rm {{ target_host }}
-  when: 
-    - "'_no_conf_keyring' in rgw_tag"
-    - "'_no_schedule' in rgw_tag"
+- name: Include remove host tasks if target_action is 'host'
+  ansible.builtin.include_tasks: remove_host.yml
+  when: target_action == "host"
+  

@@ -1,0 +1,12 @@
+---
+
+- name: Remove RGW service
+  ansible.builtin.command:
+    cmd: ceph orch rm rgw."{{ rgw_service_name }}"
+  register: remove_service_result
+  delegate_to: "{{ groups['mons'] | first }}"
+
+- name: Debug remove service result
+  ansible.builtin.debug:
+    var: remove_service_result.stdout
+  delegate_to: "{{ groups['mons'] | first }}"

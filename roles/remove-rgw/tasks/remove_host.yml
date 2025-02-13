@@ -1,0 +1,28 @@
+---
+
+- name: Drain RGE host
+  ceph.automation.ceph_orch_host:
+    name: "{{ target_host }}"
+    state: drain
+  delegate_to: "{{ groups['mons'] | first }}"
+
+- name: Check hosts that get the labels
+  ansible.builtin.shell:
+    ceph orch host ls --format json | jq -r '.[] | select(.hostname | test("{{ target_host }}")) | .labels[]'
+  register: rgw_tags
+  delegate_to: "{{ groups['mons'] | first }}"
+
+- name: Set fact the tags 
+  ansible.builtin.set_fact:
+    rgw_tag: "{{ rgw_tags.stdout_lines }}"
+  delegate_to: "{{ groups['mons'] | first }}"
+
+- name: Remove the Host
+  ceph.automation.ceph_orch_host:
+    name: "{{ target_host }}"
+    state: absent
+  ignore_errors: true
+  when: 
+    - "'_no_conf_keyring' in rgw_tag"
+    - "'_no_schedule' in rgw_tag"
+  delegate_to: "{{ groups['mons'] | first }}"
