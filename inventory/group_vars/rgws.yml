@@ -1,0 +1,33 @@
+---
+
+### Global ENV ###
+
+# Label on the host
+service_label: <SERVICE_LABEL>
+
+# RGW service name
+rgw_service_name: <RGWSERVICENAME>
+
+
+### ENV for Adding RGW ###
+
+# Erasure Code Profile name
+ecp_name: myecp
+
+# Failure domain type for EC profile
+failure_domain: host
+
+# K number
+k_number: 2
+
+# M number
+m_number: 1
+
+
+### ENV for Removing RGW ###
+
+# Removing host or service
+target_action: <HOST/SERVICE>
+
+# RGW hostname for removing
+target_host: <HOSTNAME>
