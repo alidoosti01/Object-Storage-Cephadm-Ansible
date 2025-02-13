@@ -1,98 +1,95 @@
-all:
-  children:
-    ceph_cluster:
-      children:
-        ceph_hosts:
-          hosts:
-            mon01:
-              ansible_host: mon01.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
-            mon02:
-              ansible_host: mon02.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
-            mon03:
-              ansible_host: mon03.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
-            osd01:
-              ansible_host: osd01.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
-            osd02:
-              ansible_host: osd02.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
-            osd03:
-              ansible_host: osd03.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
-            rgw01:
-              ansible_host: rgw01.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
-            rgw02:
-              ansible_host: rgw02.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
-            bastion:
-              ansible_host: monitoring.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
 
-        mons:
-          hosts:
-            mon01:
-              mon01:
-              ansible_host: mon01.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
-            mon02:
-              ansible_host: mon02.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
-            mon03:
-              ansible_host: mon03.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
+ceph_hosts:
+  hosts:
+    mon01:
+      ansible_host: mon01.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+    mon02:
+      ansible_host: mon02.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+    mon03:
+      ansible_host: mon03.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+    osd01:
+      ansible_host: osd01.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+    osd02:
+      ansible_host: osd02.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+    osd03:
+      ansible_host: osd03.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+    rgw01:
+      ansible_host: rgw01.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+    rgw02:
+      ansible_host: rgw02.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+    bastion:
+      ansible_host: monitoring.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+
+mons:
+  hosts:
+    mon01:
+      mon01:
+      ansible_host: mon01.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+    mon02:
+      ansible_host: mon02.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+    mon03:
+      ansible_host: mon03.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
 
 
-        osds:
-          hosts:
-            osd01:
-              ansible_host: osd01.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
-            osd02:
-              ansible_host: osd02.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
-            osd03:
-              ansible_host: osd03.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
+osds:
+  hosts:
+    osd01:
+      ansible_host: osd01.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+    osd02:
+      ansible_host: osd02.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+    osd03:
+      ansible_host: osd03.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
 
 
-        rgws:
-          hosts:
-            rgw01:
-              ansible_host: rgw01.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
-            rgw02:
-              ansible_host: rgw02.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
+rgws:
+  hosts:
+    rgw01:
+      ansible_host: rgw01.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+    rgw02:
+      ansible_host: rgw02.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
 
-        monitoring:
-          hosts:
-            bastion:
-              ansible_host: monitoring.domain.com
-              access_ip: <ACCESS_IP>
-              ansible_hostname: <ANSIBLE_HOST>
+monitoring:
+  hosts:
+    bastion:
+      ansible_host: monitoring.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
 
-        client:
-          hosts:
-            client01:
-              ansible_host: client.domain.com
+client:
+  hosts:
+    client01:
+      ansible_host: client.domain.com
