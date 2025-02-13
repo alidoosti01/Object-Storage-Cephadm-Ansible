@@ -28,6 +28,12 @@ This repository contains an Ansible playbook to deploy and manage an object stor
 
 This Ansible playbook automates the deployment and management of a Ceph cluster, which provides object storage services. The playbook is organized into roles and tasks that can be executed using specific tags. This modular approach allows you to perform specific actions like adding hosts, removing services, or upgrading the cluster without running the entire playbook.
 
+## Cluster Architecture
+
+Below is a diagram of the cluster structure:
+
+![Cluster Architecture](./ceph.jpg)
+
 ## Playbook Tags
 
 ### Setup Installation
