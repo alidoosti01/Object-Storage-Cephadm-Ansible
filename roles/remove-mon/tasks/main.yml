@@ -1,13 +1,9 @@
 ---
 
-- name: Drain a MON host
-  ansible.builtin.command:
-    cmd: ceph orch host drain {{ target_host }}
-  register: draining_host
-
-- name: Show output drain
-  ansible.builtin.debug:
-    msg: "{{ draining_host.stdout_lines }}"
+- name: Drain MON host
+  ceph.automation.ceph_orch_host:
+    name: "{{ target_host }}"
+    state: drain
 
 - name: Check hosts that get the labels
   ansible.builtin.shell:
@@ -18,13 +14,22 @@
   ansible.builtin.set_fact:
     mon_tag: "{{ mon_tags.stdout_lines }}"
 
+- name: Remove label
+  ansible.builtin.command:
+    ceph orch host label rm {{ target_host }} {{ service_label }}
+  when: 
+    - "'_no_conf_keyring' in mon_tag"
+    - "'_no_schedule' in mon_tag"  
+
 - name: Pause for draining host
   ansible.builtin.pause:
-    seconds: 30
+    seconds: 60
 
-- name: Check and Remove the hosts
-  ansible.builtin.command:
-    cmd: ceph orch host rm {{ target_host }}
+- name: Remove the host
+  ceph.automation.ceph_orch_host:
+    name: "{{ target_host }}"
+    state: absent
+  ignore_errors: true
   when: 
     - "'_no_conf_keyring' in mon_tag"
     - "'_no_schedule' in mon_tag"

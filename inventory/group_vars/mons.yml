@@ -1,0 +1,11 @@
+
+### ENV for Adding MON host ###
+
+# Host label
+service_label: <HOST_LABEL>
+
+
+### ENV for Removing host ###
+
+# hostname for removing
+target_host: <HOSTNAME>
