@@ -1,5 +1,4 @@
-replica_count: 3
-service_label: mgr
+# service_label: <HOST_LABEL>
 
-sleep_time: 60
-desire_pg_pool: 200
+# sleep_time: <SECOND>
+# desire_pg_pool: <NUMBER>

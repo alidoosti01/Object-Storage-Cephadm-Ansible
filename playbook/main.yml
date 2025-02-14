@@ -43,25 +43,38 @@
   tags: [ "initialize" ]
 
 
-# Add MON host to the Cluster
-- name: Adding MON to the cluster
+# Add MON/MGR host to the Cluster
+- name: Adding MON/MGR to the cluster
   become: true
   hosts: "{{ groups['mons'] }}"
   tasks:
+    - name: Check cephadm is installed
+      stat:
+        path: /usr/sbin/cephadm 
+      register: cephadm_installed
+      run_once: true
+
+    - name: Include common setup roles
+      ansible.builtin.include_role:
+        name: "{{ item }}"
+      loop:
+        - pre-setup
+        - hardening
+        - docker-install
+        - cephadm-install
+      when: not cephadm_installed.stat.exists
+
     - name: Adding a component to cluster
       ansible.builtin.include_role:
         name: add-mon
-      tags: [ "add-mon" ]
-  tags: [ "add-mon" ]
+      tags: "add-mon"
 
+    - name: Adding a component to cluster
+      ansible.builtin.include_role:
+        name: add-mgr
+      tags: "add-mgr"
 
-# Add MGR to the cluster (on MON hosts)
-- name: Adding MGR to the cluster
-  become: true
-  hosts: "{{ groups['mons'] }}"
-  roles:
-    - add-mgr
-  tags: [ "add-mgr" ]
+  tags: [ "add-mon", "add-mgr" ]
 
 
 # Add OSD (storage nodes) to the cluster

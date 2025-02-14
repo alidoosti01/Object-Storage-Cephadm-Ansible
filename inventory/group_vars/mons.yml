@@ -1,11 +1,17 @@
 
-### ENV for Adding MON host ###
+### Global ENV for MON/MGR roles ###
 
-# Host label
+# Host label mon or mgr
 service_label: <HOST_LABEL>
 
-
-### ENV for Removing host ###
-
-# hostname for removing
+# hostname for removing - using for MON/MGR
 target_host: <HOSTNAME>
+
+
+### Specific ENV for MGR ###
+
+# MGR sleep interval time
+sleep_time: <SECOND>
+
+# PG per pool count
+desire_pg_pool: <NUMBER>

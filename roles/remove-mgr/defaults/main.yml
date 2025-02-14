@@ -1,2 +1,2 @@
-target_host: <HOSTNAME>
-service_label: <SERVICELABEL>
+# target_host: <HOSTNAME>
+# service_label: <SERVICELABEL>

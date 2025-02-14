@@ -24,39 +24,40 @@
   ansible.builtin.set_fact:
     host_in_cluster: "{{ inventory_hostname in ceph_current_hosts.stdout_lines }}"
 
-- name: Add new hosts as MGRs
-  ansible.builtin.command:
-    cmd: ceph orch host label add {{ inventory_hostname }} {{ service_label }}
-  delegate_to: "{{ groups['mons'] | first }}"
-  when: host_in_cluster
+- name: Applied MGR host
+  ceph.automation.ceph_orch_host:
+    name: "{{ inventory_hostname }}"
+    labels:
+      - mon
+      - "{{ service_label }}"
+    set_admin_label: true
+    state: present
+  delegate_to: "{{ groups['mons'] | first }}" 
+  when: not host_in_cluster
 
-- name: Check current MGR placement state
-  ansible.builtin.shell:
-    ceph orch ls --format json | jq -r '.[] | select(.service_name | test("mgr")) | .placement.count'
-  register: current_mgr_placement
-  changed_when: false
-  run_once: true
-  delegate_to: "{{ groups['mons'] | first }}"
-
-- name: Set mgr applied only on mgr hosts
-  ansible.builtin.command:
-    cmd: 'ceph orch apply mgr --placement="{{ replica_count }} label:{{ service_label }}"'
-  when:
-    - current_mgr_placement.stdout != '3'
-  delegate_to: "{{ groups['mons'] | first }}"
+- name: Applied MGR service
+  ceph.automation.ceph_orch_apply:
+    spec: |
+      service_type: "{{ service_name }}"
+      placement:
+        label: "{{ service_label }}"
+  delegate_to: "{{ groups['mons'] | first }}" 
 
 
 ################################### DASHBOARD CONFIG #########################
 
 
-- name: Ensure Dashboard be enabled
-  ansible.builtin.command:
-    cmd: ceph mgr module enable dashboard
+- name: Enabling Dashboard
+  ceph.automation.ceph_mgr_module:
+    name: dashboard
+    state: enable
   delegate_to: "{{ groups['mons'] | first }}" 
 
-- name: Check Error Status code
-  ansible.builtin.shell:
-    ceph config get mgr mgr/dashboard/standby_error_status_code
+- name: Current Error Status Code
+  ceph.automation.ceph_config:
+    action: get
+    who: "{{ service_name }}"
+    option: mgr/dashboard/standby_error_status_code
   register: default_error_code
   delegate_to: "{{ groups['mons'] | first }}"
 
@@ -66,11 +67,13 @@
   delegate_to: "{{ groups['mons'] | first }}"
 
 - name: Set new error status code
-  ansible.builtin.command:
-    cmd: ceph config set mgr mgr/dashboard/standby_error_status_code 503
-  delegate_to: "{{ groups['mons'] | first }}"
+  ceph.automation.ceph_config:
+    action: set
+    who: "{{ service_name }}"
+    option: mgr/dashboard/standby_error_status_code
+    value: 503
+  delegate_to: "{{ groups['mons'] | first }}" 
   when: current_error_code != "503"
-
 
 ################################### BALANCER CONFIG ##########################
 
@@ -78,11 +81,13 @@
 
 # set max misplaced for PG from default 5% to 7%
 
-- name: Check default value of Max_Misplaced
-  ansible.builtin.command:
-    cmd: ceph config get mgr target_max_misplaced_ratio
+- name: Current Max_Misplaced value
+  ceph.automation.ceph_config:
+    action: get
+    who: "{{ service_name }}"
+    option: target_max_misplaced_ratio
   register: default_max_misplaced
-  delegate_to: "{{ groups['mons'] | first }}"
+  delegate_to: "{{ groups['mons'] | first }}" 
 
 - name: Set fact default Max_Misplaced
   ansible.builtin.set_fact:
@@ -90,9 +95,12 @@
   delegate_to: "{{ groups['mons'] | first }}"
 
 - name: Set MGR PGs Max_Misplaced to 7%
-  ansible.builtin.command:
-    cmd: ceph config set mgr target_max_misplaced_ratio .07
-  delegate_to: "{{ groups['mons'] | first }}"
+  ceph.automation.ceph_config:
+    action: set
+    who: "{{ service_name }}"
+    option: target_max_misplaced_ratio
+    value: .07
+  delegate_to: "{{ groups['mons'] | first }}" 
   when: current_misplaced != "0.070000"
 
 
@@ -118,33 +126,45 @@
 
 # set sleep interval for mgr/balancer
 
-- name: Check default value of sleep interval
-  ansible.builtin.shell:
-    ceph config get mgr mgr/balancer/sleep_interval
+- name: Current Sleep interval Value
+  ceph.automation.ceph_config:
+    action: get
+    who: "{{ service_name }}"
+    option: mgr/balancer/sleep_interval
   register: default_sleep_interval
-  delegate_to: "{{ groups['mons'] | first }}"
+  delegate_to: "{{ groups['mons'] | first }}" 
 
 - name: Set fact default sleep interval
   ansible.builtin.set_fact:
     current_sleep_interval: "{{ default_balancer_mode.stdout }}"
   delegate_to: "{{ groups['mons'] | first }}"
 
-- name: Set desire value for sleep interval
-  ansible.builtin.command:
-    cmd: ceph config set mgr mgr/balancer/sleep_interval {{ sleep_time }}
+- name: Set new Sleep interval value
+  ceph.automation.ceph_config:
+    action: set
+    who: "{{ service_name }}"
+    option: mgr/balancer/sleep_interval
+    value: "{{ sleep_time }}"
   delegate_to: "{{ groups['mons'] | first }}"
+
 
 ################################### PG_AUTOSCALER CONFIG #####################
 
 
 - name: Ensure the autoscaling be on for all pools
-  ansible.builtin.command:
-    cmd: ceph config set global osd_pool_default_pg_autoscale_mode on
-  delegate_to: "{{ groups['mons'] | first }}"
+  ceph.automation.ceph_config:
+    action: set
+    who: global
+    option: osd_pool_default_pg_autoscale_mode
+    value: on
+  when: current_misplaced != "0.070000"
+  delegate_to: "{{ groups['mons'] | first }}" 
 
-- name: Check PG per Pools Values
-  ansible.builtin.shell:
-    ceph config get mon mon_target_pg_per_osd
+- name: Current PG per Pools value
+  ceph.automation.ceph_config:
+    action: get
+    who: mon
+    option: mon_target_pg_per_osd
   register: default_pg_pool
   delegate_to: "{{ groups['mons'] | first }}"
 
@@ -153,7 +173,10 @@
     current_pg_pool: "{{ default_pg_pool.stdout }}"
   delegate_to: "{{ groups['mons'] | first }}"
 
-- name: Change PG per Pools
-  ansible.builtin.command:
-    cmd: ceph config set global mon_target_pg_per_osd {{ desire_pg_pool }}
+- name: Set PG per Pool new value
+  ceph.automation.ceph_config:
+    action: set
+    who: global
+    option: mon_target_pg_per_osd
+    value: "{{ desire_pg_pool }}"
   delegate_to: "{{ groups['mons'] | first }}"

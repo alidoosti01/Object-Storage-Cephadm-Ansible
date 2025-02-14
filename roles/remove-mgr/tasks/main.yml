@@ -1,46 +1,28 @@
 ---
 
-################################## REMOVING MGR SERVICE #####################
+- name: Drain MGR host
+  ceph.automation.ceph_orch_host:
+    name: "{{ target_host }}"
+    state: drain
+  delegate_to: "{{ groups['mons'] | first }}"
 
+- name: Check hosts that get the labels
+  ansible.builtin.shell:
+    ceph orch host ls --format json | jq -r '.[] | select(.hostname | test("{{ target_host }}")) | .labels[]'
+  register: mgr_tags
+  delegate_to: "{{ groups['mons'] | first }}"
 
-- name: Delete MGR tag
-  ansible.builtin.command:
-    cmd: ceph orch host label rm {{ target_host }} {{ service_label }}
+- name: Set fact the tags 
+  ansible.builtin.set_fact:
+    mgr_tag: "{{ mgr_tags.stdout_lines }}"
+  delegate_to: "{{ groups['mons'] | first }}"
 
-
-
-################################## REMOVING A HOST ##########################
-
-
-# - name: Drain a MGR host
-#   command:
-#     cmd: ceph orch host drain {{ target_host }}
-#   register: draining_host
-
-# - name: Show output drain
-#   debug:
-#     msg: "{{ draining_host.stdout_lines }}"
-
-# - name: Check hosts that get the labels
-#   shell:
-#     ceph orch host ls --format json | jq -r '.[] | select(.hostname | test("{{ target_host }}")) | .labels[]'
-#   register: mgr_tags
-# 
-#  
-
-# - name: Set fact the tags 
-#   set_fact:
-#     mgr_tag: "{{ mgr_tags.stdout_lines }}"
-#  
-
-# - name: Pause for cluster to setup the mgrs
-#   pause:
-#     seconds: 30
-# 
-
-# - name: Check and Remove the hosts
-#   command:
-#     cmd: ceph orch host rm {{ target_host }}
-#   when: 
-#     - "'_no_conf_keyring' in mgr_tag"
-#     - "'_no_schedule' in mgr_tag"
+- name: Remove the Host
+  ceph.automation.ceph_orch_host:
+    name: "{{ target_host }}"
+    state: absent
+  ignore_errors: true
+  when: 
+    - "'_no_conf_keyring' in mgr_tag"
+    - "'_no_schedule' in mgr_tag"
+  delegate_to: "{{ groups['mons'] | first }}"
