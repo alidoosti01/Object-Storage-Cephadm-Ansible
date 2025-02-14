@@ -81,8 +81,26 @@
 - name: Adding OSD to the cluster
   become: true
   hosts: "{{ groups['osds'] }}"
-  roles:
-    - add-osd
+  tasks:
+    - name: Check cephadm is installed
+      stat:
+        path: /usr/sbin/cephadm 
+      register: cephadm_installed
+      run_once: true
+
+    - name: Include common setup roles
+      ansible.builtin.include_role:
+        name: "{{ item }}"
+      loop:
+        - pre-setup
+        - hardening
+        - docker-install
+        - cephadm-install
+      when: not cephadm_installed.stat.exists
+
+    - name: Adding a component to cluster
+      ansible.builtin.include_role:
+        name: add-osd
   tags: [ "add-osd" ]
 
 

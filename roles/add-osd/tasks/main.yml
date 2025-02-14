@@ -24,37 +24,19 @@
   ansible.builtin.set_fact:
     host_in_cluster: "{{ inventory_hostname in ceph_current_hosts.stdout_lines }}"
 
-
-- name: Check cephadm is installed
-  ansible.builtin.stat:
-    path: /usr/sbin/cephadm
-  register: cephadm_installed
-  run_once: true
-
-
-- name: Install and setup the host if not in the cluster
-  block:
-    - name: Include common setup roles
-      ansible.builtin.include_role:
-        name: "{{ item }}"
-      loop:
-        - pre-setup
-        - hardening
-        - docker-install
-        - cephadm-install
-      when:
-        - not host_in_cluster
-        - not cephadm_installed.stat.exists
-
-    - name: Add the host to the Ceph cluster
-      ansible.builtin.command:
-        cmd: ceph orch host add {{ inventory_hostname }} {{ hostvars[inventory_hostname].ansible_facts['eth1']['ipv4']['address'] }} --labels={{ service_label }}
-      delegate_to: "{{ groups['mons'] | first }}"
-      when: not host_in_cluster
+- name: Add the host to the Ceph cluster
+  ansible.builtin.command:
+    cmd: ceph orch host add {{ inventory_hostname }} {{ hostvars[inventory_hostname].ansible_facts['eth1']['ipv4']['address'] }} --labels={{ service_label }}
+  delegate_to: "{{ groups['mons'] | first }}"
   when: not host_in_cluster
 
-
 - name: Add all unused storage device
-  ansible.builtin.command:
-    cmd: ceph orch apply osd --all-available-devices
+  ceph.automation.ceph_orch_apply:
+    spec: |
+      service_type: osd
+      placement:
+        label: osd
+      spec:
+        data_devices:
+          all: true
   delegate_to: "{{ groups['mons'] | first }}"
