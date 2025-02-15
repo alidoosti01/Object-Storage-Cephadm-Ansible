@@ -2,6 +2,7 @@
 ### Global ENV for MON/MGR roles ###
 
 # Host label mon or mgr
+# When using this two tags in ansible_run_command "add-mon,add-mgr", you have to define service_label on defaults/main.yml for one of them
 service_label: <HOST_LABEL>
 
 # hostname for removing - using for MON/MGR

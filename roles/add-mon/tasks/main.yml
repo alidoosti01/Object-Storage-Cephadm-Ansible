@@ -2,7 +2,8 @@
 
 - name: Read the fetched SSH key into a variable
   set_fact:
-    ssh_key_content: "{{ lookup('file', './tmp/ceph_ssh.pub') }}" 
+    ssh_key_content: "{{ lookup('file', './tmp/ceph_ssh.pub') }}"
+  tags: "add-mon"
 
 - name: Append SSH public key to authorized_keys
   ansible.builtin.lineinfile:
@@ -12,6 +13,7 @@
     owner: root
     group: root
     mode: '0600'
+  tags: "add-mon"
 
 
 - name: Check if the host is already part of the Ceph cluster
@@ -20,17 +22,20 @@
   register: ceph_current_hosts
   delegate_to: "{{ groups['mons'] | first }}"
   run_once: true
+  tags: "add-mon"
 
 
 - name: Set fact for whether the host is in the Ceph cluster
   set_fact:
     host_in_cluster: "{{ inventory_hostname in ceph_current_hosts.stdout_lines }}"
+  tags: "add-mon"
 
 - name: Add the host to the Ceph cluster
   ansible.builtin.command:
     cmd: ceph orch host add {{ inventory_hostname }} {{ hostvars[inventory_hostname].ansible_facts['eth1']['ipv4']['address'] }} --labels=_admin,{{ service_label }}
   delegate_to: "{{ groups['mons'] | first }}" 
   when: not host_in_cluster
+  tags: "add-mon"
 
 - name: Set MON Applied only on MON Hosts
   ceph.automation.ceph_orch_apply:
@@ -39,3 +44,4 @@
       placement:
         label: mon
   delegate_to: "{{ groups['mons'] | first }}"
+  tags: "add-mon"

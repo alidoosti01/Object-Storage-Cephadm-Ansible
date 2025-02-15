@@ -46,4 +46,7 @@
 
 - name: Install dockerpy
   ansible.builtin.pip:
-    name: docker
+    name: "{{ item }}"
+  loop:
+    - docker
+    - docker-compose

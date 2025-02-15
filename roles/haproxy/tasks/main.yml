@@ -1,0 +1,24 @@
+---
+
+- name: Docker compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ docker_compose_file }}"
+    mode: 0644
+    group: root
+    owner: root
+
+- name: Haproxy Config file
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: "{{ haproxy_config_file }}"
+    group: root
+    owner: root
+    mode: 0644
+
+- name: Docker run
+  ansible.builtin.command:
+    cmd: docker compose -f "{{ docker_compose_file }}" up -d
+
+
+

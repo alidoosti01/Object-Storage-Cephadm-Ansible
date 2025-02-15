@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  haproxy:
+    container_name: {{ service_name }}
+    image: haproxy:latest
+    volumes:
+      - {{ haproxy_config_file }}:/usr/local/etc/haproxy/haproxy.cfg
+    ports:
+      - "{{ haproxy_port }}:80"
+      - "{{ haproxy_stat_port }}:8080"

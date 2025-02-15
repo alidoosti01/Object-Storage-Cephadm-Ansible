@@ -1,0 +1,18 @@
+# Container name
+service_name: haproxy
+
+# Haproxy Config file address
+haproxy_config_file: /tmp/haproxy.cfg
+
+# Docker compose file address
+docker_compose_file: /tmp/docker-compose.yml
+
+# Haproxy access port
+haproxy_port: 80
+
+# Haproxy stat port
+haproxy_stat_port: 8080
+
+# Haproxy stat user and password
+stat_user: <USERNAME>
+stat_password: <PASSWORD>

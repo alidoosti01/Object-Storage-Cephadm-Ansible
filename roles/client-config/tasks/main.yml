@@ -21,27 +21,33 @@
     state: directory
     group: root
 
-- name: Create the user and paste the output to a file
-  ansible.builtin.shell:
-    cmd: 'radosgw-admin user create --uid="{{ first_client }}" --display-name="{{ first_client }}" > /root/{{ first_client }}.json'
+- name: RadosGW Create User
+  ceph.automation.radosgw_user:
+    name: "{{ client_name  }}"
+    display_name: "{{ client_name }}"
+    email: "{{ user_email }}"
+    state: present
   delegate_to: "{{ groups['mons'] | first }}"
-  register: client_config_json
+
+- name: Get client config file
+  ansible.builtin.shell: 'radosgw-admin user info --uid="{{ client_name }}" > /root/{{ client_name }}.json'
+  delegate_to: "{{ groups['mons'] | first }}"
 
 - name: Check if JSON file exists
   ansible.builtin.stat:
-    path: /root/{{ first_client }}.json
+    path: /root/{{ client_name }}.json
   register: json_file_stat
   delegate_to: "{{ groups['mons'] | first }}"
 
 - name: Fail if JSON file is missing
   ansible.builtin.fail:
-    msg: "File /root/{{ first_client }}.json does not exist!"
+    msg: "File /root/{{ client_name }}.json does not exist!"
   when: not json_file_stat.stat.exists
   delegate_to: "{{ groups['mons'] | first }}"
 
 - name: Read JSON file content
   ansible.builtin.slurp:
-    src: /root/{{ first_client }}.json
+    src: /root/{{ client_name }}.json
   register: json_file_content
   delegate_to: "{{ groups['mons'] | first }}"
 

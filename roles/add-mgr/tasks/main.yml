@@ -3,6 +3,7 @@
 - name: Read the fetched SSH key into a variable
   ansible.builtin.set_fact:
     ssh_key_content: "{{ lookup('file', './tmp/ceph_ssh.pub') }}"
+  tags: add-mgr
 
 - name: Append SSH public key to authorized_keys
   ansible.builtin.lineinfile:
@@ -12,6 +13,7 @@
     owner: root
     group: root
     mode: '0600'
+  tags: add-mgr
 
 - name: Check if the host is already part of the Ceph cluster
   ansible.builtin.shell: |
@@ -19,10 +21,12 @@
   register: ceph_current_hosts
   delegate_to: "{{ groups['mons'] | first }}"
   run_once: true
+  tags: add-mgr
 
 - name: Set fact for whether the host is in the Ceph cluster
   ansible.builtin.set_fact:
     host_in_cluster: "{{ inventory_hostname in ceph_current_hosts.stdout_lines }}"
+  tags: add-mgr
 
 - name: Applied MGR host
   ceph.automation.ceph_orch_host:
@@ -34,6 +38,7 @@
     state: present
   delegate_to: "{{ groups['mons'] | first }}" 
   when: not host_in_cluster
+  tags: add-mgr
 
 - name: Applied MGR service
   ceph.automation.ceph_orch_apply:
@@ -42,6 +47,7 @@
       placement:
         label: "{{ service_label }}"
   delegate_to: "{{ groups['mons'] | first }}" 
+  tags: add-mgr
 
 
 ################################### DASHBOARD CONFIG #########################
@@ -52,6 +58,7 @@
     name: dashboard
     state: enable
   delegate_to: "{{ groups['mons'] | first }}" 
+  tags: add-mgr
 
 - name: Current Error Status Code
   ceph.automation.ceph_config:
@@ -60,11 +67,13 @@
     option: mgr/dashboard/standby_error_status_code
   register: default_error_code
   delegate_to: "{{ groups['mons'] | first }}"
+  tags: add-mgr
 
 - name: Set fact the error status code
   ansible.builtin.set_fact:
     current_error_code: "{{ default_error_code.stdout }}"
   delegate_to: "{{ groups['mons'] | first }}"
+  tags: add-mgr
 
 - name: Set new error status code
   ceph.automation.ceph_config:
@@ -74,6 +83,7 @@
     value: 503
   delegate_to: "{{ groups['mons'] | first }}" 
   when: current_error_code != "503"
+  tags: add-mgr
 
 ################################### BALANCER CONFIG ##########################
 
@@ -88,11 +98,13 @@
     option: target_max_misplaced_ratio
   register: default_max_misplaced
   delegate_to: "{{ groups['mons'] | first }}" 
+  tags: add-mgr
 
 - name: Set fact default Max_Misplaced
   ansible.builtin.set_fact:
     current_misplaced: "{{ default_max_misplaced.stdout }}"
   delegate_to: "{{ groups['mons'] | first }}"
+  tags: add-mgr
 
 - name: Set MGR PGs Max_Misplaced to 7%
   ceph.automation.ceph_config:
@@ -102,6 +114,7 @@
     value: .07
   delegate_to: "{{ groups['mons'] | first }}" 
   when: current_misplaced != "0.070000"
+  tags: add-mgr
 
 
 # set upmap be the balancer mode
@@ -111,17 +124,20 @@
     ceph balancer status | jq -r '.mode'
   register: default_balancer_mode
   delegate_to: "{{ groups['mons'] | first }}"
+  tags: add-mgr
 
 - name: Set fact default balancer mode
   ansible.builtin.set_fact:
     current_balancer_mode: "{{ default_balancer_mode.stdout }}"
   delegate_to: "{{ groups['mons'] | first }}"
+  tags: add-mgr
 
 - name: Set Balancer mode to upmap
   ansible.builtin.command:
     cmd: ceph balancer mode upmap
   when: current_balancer_mode != "upmap"
   delegate_to: "{{ groups['mons'] | first }}" 
+  tags: add-mgr
 
 
 # set sleep interval for mgr/balancer
@@ -133,11 +149,13 @@
     option: mgr/balancer/sleep_interval
   register: default_sleep_interval
   delegate_to: "{{ groups['mons'] | first }}" 
+  tags: add-mgr
 
 - name: Set fact default sleep interval
   ansible.builtin.set_fact:
     current_sleep_interval: "{{ default_balancer_mode.stdout }}"
   delegate_to: "{{ groups['mons'] | first }}"
+  tags: add-mgr
 
 - name: Set new Sleep interval value
   ceph.automation.ceph_config:
@@ -146,32 +164,30 @@
     option: mgr/balancer/sleep_interval
     value: "{{ sleep_time }}"
   delegate_to: "{{ groups['mons'] | first }}"
+  tags: add-mgr
 
 
 ################################### PG_AUTOSCALER CONFIG #####################
 
 
 - name: Ensure the autoscaling be on for all pools
-  ceph.automation.ceph_config:
-    action: set
-    who: global
-    option: osd_pool_default_pg_autoscale_mode
-    value: on
-  when: current_misplaced != "0.070000"
+  ansible.builtin.command:
+    cmd: ceph config set osd osd_pool_default_pg_autoscale_mode on
   delegate_to: "{{ groups['mons'] | first }}" 
+  tags: add-mgr
 
 - name: Current PG per Pools value
-  ceph.automation.ceph_config:
-    action: get
-    who: mon
-    option: mon_target_pg_per_osd
+  ansible.builtin.shell:
+    ceph config get mon mon_target_pg_per_osd
   register: default_pg_pool
   delegate_to: "{{ groups['mons'] | first }}"
+  tags: add-mgr
 
 - name: Set fact the PG per Pools
   ansible.builtin.set_fact:
     current_pg_pool: "{{ default_pg_pool.stdout }}"
   delegate_to: "{{ groups['mons'] | first }}"
+  tags: add-mgr
 
 - name: Set PG per Pool new value
   ceph.automation.ceph_config:
@@ -180,3 +196,4 @@
     option: mon_target_pg_per_osd
     value: "{{ desire_pg_pool }}"
   delegate_to: "{{ groups['mons'] | first }}"
+  tags: add-mgr

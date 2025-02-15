@@ -74,8 +74,6 @@
         name: add-mgr
       tags: "add-mgr"
 
-  tags: [ "add-mon", "add-mgr" ]
-
 
 # Add OSD (storage nodes) to the cluster
 - name: Adding OSD to the cluster
