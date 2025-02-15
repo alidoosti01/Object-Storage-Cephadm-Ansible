@@ -4,19 +4,24 @@
   ansible.builtin.ping:
     data: alive
 
-- name: Initial ceph cluster
-  ansible.builtin.command:
-    cmd: 'cephadm bootstrap --mon-ip {{ ansible_facts["eth1"]["ipv4"]["address"] }} --cluster-network {{ ansible_facts["eth1"]["ipv4"]["network"] }}/{{ ansible_facts["eth1"]["ipv4"]["prefix"] }} --initial-dashboard-user {{ dashboard_user }} --initial-dashboard-password {{ dashboard_password }}'
+- name: Initial CEPH Cluster
+  ceph.automation.cephadm_bootstrap:
+    mon_ip: "{{ ansible_facts['eth1']['ipv4']['address'] }}"
+    cluster_network: "{{ ansible_facts['eth1']['ipv4']['network'] }}/{{ ansible_facts['eth1']['ipv4']['prefix'] }}"
+    initial_dashboard_user: "{{ dashboard_user }}"
+    initial_dashboard_password: "{{ dashboard_password }}"
   register: cephadm_bootstrap
 
 - name: Cephadm bootstrap result
   ansible.builtin.debug:
     var: cephadm_bootstrap.stdout
 
-- name: Set mon public network on ceph
-  ansible.builtin.command:
-    cmd: 'ceph config set mon public_network {{ ansible_facts["eth1"]["ipv4"]["network"] }}/{{ ansible_facts["eth1"]["ipv4"]["prefix"] }}'
-  register: mon_public_network
+- name: Set MON public network
+  ceph.automation.ceph_config:
+    action: set
+    who: mon
+    option: public_network
+    value: "{{ ansible_facts['eth1']['ipv4']['network'] }}/{{ ansible_facts['eth1']['ipv4']['prefix'] }}"
 
 
 - name: Read the Ceph public key

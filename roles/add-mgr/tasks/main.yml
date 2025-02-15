@@ -37,7 +37,7 @@
     set_admin_label: true
     state: present
   delegate_to: "{{ groups['mons'] | first }}" 
-  when: not host_in_cluster
+  when: host_in_cluster
   tags: add-mgr
 
 - name: Applied MGR service
