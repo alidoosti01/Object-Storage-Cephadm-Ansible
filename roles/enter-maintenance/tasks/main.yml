@@ -15,7 +15,7 @@
     cmd: ceph orch host ok-to-stop {{ host_name }}
   tags: [ "enter-maintenance-rgw", "enter-maintenance-mgr", "enter-maintenance-mon", "enter-maintenance-osd" ]
 
-- name: pause for degrees the service
+- name: pause for decrease the service
   ansible.builtin.pause:
     seconds: 20
   tags: [ "enter-maintenance-rgw", "enter-maintenance-mgr", "enter-maintenance-mon" ]
