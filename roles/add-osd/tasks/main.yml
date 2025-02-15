@@ -30,6 +30,7 @@
   delegate_to: "{{ groups['mons'] | first }}"
   when: not host_in_cluster
 
+
 - name: Add all unused storage device
   ceph.automation.ceph_orch_apply:
     spec: |
@@ -40,3 +41,4 @@
         data_devices:
           all: true
   delegate_to: "{{ groups['mons'] | first }}"
+  

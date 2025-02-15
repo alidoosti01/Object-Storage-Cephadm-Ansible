@@ -36,12 +36,18 @@
   delegate_to: "{{ groups['mons'] | first }}"
 
 
-- name: Set Alert-manager applied only on prometheus hosts
-  ansible.builtin.command:
-    cmd: 'ceph orch apply alertmanager --placement="{{ replica_count }} label:{{ service_label }}"'
+- name: Applied prometheus
+  ceph.automation.ceph_orch_apply:
+    spec: |
+      service_type: prometheus
+      placement:
+        label: {{ service_label }}
   delegate_to: "{{ groups['mons'] | first }}"
 
-- name: Apply Grafana
-  ansible.builtin.command:
-    cmd: 'ceph orch apply grafana --placement="{{ replica_count }} label:{{ service_label }}"'
+- name: Applied Alertmanager
+  ceph.automation.ceph_orch_apply:
+    spec: |
+      service_type: alertmanager
+      placement:
+        label: {{ service_label }}
   delegate_to: "{{ groups['mons'] | first }}"

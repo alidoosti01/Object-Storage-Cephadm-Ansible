@@ -8,6 +8,8 @@ service_label: <HOST_LABEL>
 # hostname for removing - using for MON/MGR
 target_host: <HOSTNAME>
 
+# New version for upgrading
+new_version: <NEW-VERSION>
 
 ### Specific ENV for MGR ###
 
