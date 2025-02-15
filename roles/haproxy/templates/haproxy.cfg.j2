@@ -28,5 +28,5 @@ frontend rgw_frontend
 backend rgw_backend
     balance roundrobin
 {% for host in groups['rgws'] %}
-    server {{ hostvars[host].ansible_hostname }} {{ hostvars[host].access_ip }}:{{ haproxy_port }} check inter 10s fail 3 rise 2
+    server {{ hostvars[host].ansible_hostname }} {{ hostvars[host].access_ip }}:{{ haproxy_port }} check inter 10s fall 3 rise 2
 {% endfor %}

@@ -30,12 +30,6 @@
   delegate_to: "{{ groups['mons'] | first }}"
   when: not host_in_cluster
 
-- name: Set prometheus applied only on prometheus hosts
-  ansible.builtin.command:
-    cmd: 'ceph orch apply prometheus --placement="{{ replica_count }} label:{{ service_label }}"'
-  delegate_to: "{{ groups['mons'] | first }}"
-
-
 - name: Applied prometheus
   ceph.automation.ceph_orch_apply:
     spec: |

@@ -25,3 +25,9 @@ desire_pg_pool: <NUMBER>
 host_name: <HOSTNAME>
 #service_name: <SERVICE>
 #service_label: <LABELOFSERVICE>
+
+
+### ENV for Initialize ###
+
+dashboard_user: <ADMIN_USER>
+dashboard_password: <ADMIN_PASSWORD>
