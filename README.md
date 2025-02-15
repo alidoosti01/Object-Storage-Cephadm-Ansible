@@ -5,6 +5,8 @@ This repository contains an Ansible playbook to deploy and manage an object stor
 ## Table of Contents
 
 - [Overview](#overview)
+- [Requirements](#requirements)
+- [Cluster Architecture](#cluster-architecture)
 - [Playbook Tags](#playbook-tags)
   - [Setup Installation](#setup-installation)
   - [Initialize Ceph Cluster](#initialize-ceph-cluster)
@@ -27,6 +29,19 @@ This repository contains an Ansible playbook to deploy and manage an object stor
 ## Overview
 
 This Ansible playbook automates the deployment and management of a Ceph cluster, which provides object storage services. The playbook is organized into roles and tasks that can be executed using specific tags. This modular approach allows you to perform specific actions like adding hosts, removing services, or upgrading the cluster without running the entire playbook.
+
+## Requirements
+
+Before using this Ansible playbook, ensure you meet the following requirement:
+
+- **Ceph Automation Collection**:
+
+  - The `ceph.automation` Ansible collection is required to run this playbook.
+  - Install the collection using the following command:
+  
+  ```bash
+  ansible-galaxy collection install ceph.automation
+  ```
 
 ## Cluster Architecture
 
