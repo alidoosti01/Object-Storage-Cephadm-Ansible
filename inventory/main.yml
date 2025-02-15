@@ -82,6 +82,17 @@ rgws:
       access_ip: <ACCESS_IP>
       ansible_hostname: <ANSIBLE_HOST>
 
+haproxy:
+  hosts:
+    haproxy01:
+      ansible_host: haproxy01.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+    haproxy02:
+      ansible_host: haproxy02.domain.com
+      access_ip: <ACCESS_IP>
+      ansible_hostname: <ANSIBLE_HOST>
+
 monitoring:
   hosts:
     bastion:

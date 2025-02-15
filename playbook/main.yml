@@ -128,6 +128,16 @@
         name: add-rgw
   tags: [ "add-rgw" ]
 
+# Setup haproxy
+- name: Setup haproxy
+  become: true
+  hosts: haproxy
+  roles:
+    - pre-setup
+    - hardening
+    - docker-install
+    - haproxy
+  tags: "haproxy"
 
 # Setup Monitoring stack (alerting, prometheus and grafana)
 - name: Monitoring setup
@@ -152,7 +162,7 @@
 # Removing RGW service or RGW host
 - name: Removing RGW from the cluster
   become: true
-  hosts: "{{ groups['mons'] | first }}"
+  hosts: rgws
   roles:
     - remove-rgw
   tags: [ "remove-rgw" ]

@@ -43,6 +43,10 @@ Before using this Ansible playbook, ensure you meet the following requirement:
   ansible-galaxy collection install ceph.automation
   ```
 
+- **Ansible 2.17.x**:
+
+  - The `Ansible` should be 2.17.x version like 2.17.8
+
 ## Cluster Architecture
 
 Below is a diagram of the cluster structure:
